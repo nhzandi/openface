@@ -50,6 +50,7 @@ import matplotlib.cm as cm
 
 import openface
 import sqlite3
+import cPickle
 
 modelDir = os.path.join(fileDir, '..', '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
@@ -246,16 +247,16 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
             self.svm = GridSearchCV(SVC(C=1), param_grid, cv=5).fit(X, y)
 
     def saveDB(self, images, people):
-        conn = sqlite3.connect('example.db')
+        print("save images into DATABASE")
+        conn = sqlite3.connect('faces.db')
         c = conn.cursor()
         c.execute('''CREATE TABLE faces
-                    (image real, name text)''')
-        c.execute("INSERT INTO faces VALUES ? ", self.images)
+                    (image blob, name text)''')
         for img in self.images.values():
-            X = img.rep
+            X = cPickle.dumps(img.rep)
             y = img.identity
-            face = (X,y)
-            c.execute("INSERT INTO faces VALUES ? ", face)
+            face = (sqlite3.Binary(X),y)
+            c.execute("INSERT INTO faces VALUES (?, ?) ", face)
 
         conn.commit()
         conn.close()
