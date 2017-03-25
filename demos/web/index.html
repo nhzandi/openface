@@ -98,6 +98,13 @@ limitations under the License.
                     </button>
                 </div>
                 <br/>
+                <div>
+                    <button class="btn btn-default" type="button"
+                            id="saveData">
+                        Save to DataBase
+                    </button>
+                </div>
+                <br/>
                 <div class="dropdown" id="defaultPersonDropdown"></div>
                 <script id="defaultPersonTmpl" type="text/x-handlebars-template">
                     <button class="btn btn-default dropdown-toggle"
@@ -229,6 +236,8 @@ limitations under the License.
      $("#serverBtn.btn-group > .btn").click(changeServerCallback);
      $("#addPersonBtn").click(addPersonCallback);
      $("#addPersonTxt").pressEnter(addPersonCallback);
+     $("#savaData").click(saveDataCallback);
+     $("#loadData").click(loadDataCallback);
      $("#trainingChk").change(trainingChkCallback);
      $("#viewTSNEBtn").click(viewTSNECallback);
 
