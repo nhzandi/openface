@@ -259,6 +259,7 @@ function addPersonCallback(el) {
 }
 
 function saveDataCallback(){
+    console.log("save called");
     if (socket != null){
       var msg = {
           'type' : 'SAVE_DB',
@@ -272,7 +273,7 @@ function saveDataCallback(){
 function loadDataCallback(){
     if (socket != null){
       var msg = {
-          'type' : 'LOAD_DB'          
+          'type' : 'LOAD_DB'
       };
       socket.send(JSON.stringify(msg));
     }
