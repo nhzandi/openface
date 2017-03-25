@@ -258,6 +258,26 @@ function addPersonCallback(el) {
     redrawPeople();
 }
 
+function saveDataCallback(){
+    if (socket != null){
+      var msg = {
+          'type' : 'SAVE_DB',
+          'images' : images,
+          'people' : people
+      };
+      socket.send(JSON.stringify(msg));
+    }
+}
+
+function loadDataCallback(){
+    if (socket != null){
+      var msg = {
+          'type' : 'LOAD_DB'          
+      };
+      socket.send(JSON.stringify(msg));
+    }
+}
+
 function trainingChkCallback() {
     training = $("#trainingChk").prop('checked');
     if (training) {

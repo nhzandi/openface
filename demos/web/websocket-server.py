@@ -49,6 +49,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 import openface
+import sqlite3
 
 modelDir = os.path.join(fileDir, '..', '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
@@ -141,6 +142,8 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
                 print("Image not found.")
         elif msg['type'] == 'REQ_TSNE':
             self.sendTSNE(msg['people'])
+        elif msg['type'] == 'SAVE_DB':
+            self.saveDB(msg['images'], msg['people'])
         else:
             print("Warning: Unknown message type: {}".format(msg['type']))
 
@@ -241,6 +244,21 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
                  'kernel': ['rbf']}
             ]
             self.svm = GridSearchCV(SVC(C=1), param_grid, cv=5).fit(X, y)
+
+    def saveDB(self, images, people):
+        conn = sqlite3.connect('example.db')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE faces
+                    (image real, name text)''')
+        c.execute("INSERT INTO faces VALUES ? ", self.images)
+        for img in self.images.values():
+            X = img.rep
+            y = img.identity
+            face = (X,y)
+            c.execute("INSERT INTO faces VALUES ? ", face)
+
+        conn.commit()
+        conn.close()
 
     def processFrame(self, dataURL, identity):
         head = "data:image/jpeg;base64,"
