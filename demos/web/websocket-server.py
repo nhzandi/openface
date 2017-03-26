@@ -96,6 +96,8 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         self.training = True
         self.people = []
         self.svm = None
+        self.dbRep = []
+        self.dbId = []
         if args.unknown:
             self.unknownImgs = np.load("./examples/web/unknown.npy")
 
@@ -145,6 +147,8 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
             self.sendTSNE(msg['people'])
         elif msg['type'] == 'SAVE_DB':
             self.saveDB()
+        elif msg['type'] == 'LOAD_DB':
+            self.loadDB()
         else:
             print("Warning: Unknown message type: {}".format(msg['type']))
 
@@ -251,15 +255,45 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
         c.execute('''CREATE TABLE faces
-                    (image blob, identity text, name text)''')
+                    (image blob, identity text)''')
+        c.execute('''CREATE TABLE people
+                    (name text)''')
+        c.execute('''CREATE TABLE svm
+                    (svm blob)''')
+
         for img in self.images.values():
             X = cPickle.dumps(img.rep)
             y = img.identity
-            z = self.people[img.identity]
-            face = (sqlite3.Binary(X), y, z)
-            c.execute("INSERT INTO faces VALUES (?, ?, ?) ", face)
+            face = (sqlite3.Binary(X), y)
+            c.execute("INSERT INTO faces VALUES (?, ?) ", face)
+
+        for p in self.people:
+            pe = (p, )
+            c.execute("INSERT INTO people VALUES (?)", pe)
+
+        if self.svm is not None:
+            c.execute("INSERT INTO svm VALUES (?)", self.svm)
 
         conn.commit()
+        conn.close()
+
+    def loadDB(self):
+        conn = sqlite3.connect('faces.db')
+        c = conn.cursor()
+        c.execute("SELECT * FROM faces")
+        for faces in c:
+            # TODO read the data and fill self.image
+            self.dbRep.append(cPickle.loads(faces[0]))
+            self.dbId.append(faces[1].encode('ascii', 'ignore'))
+
+
+        c.execute("SELECT * FROM people")
+        for people in c:
+            self.people.append(q[0].encode('ascii', 'ignore'))
+        print(self.people)
+
+        c.execute("SELECT * FROM svm")
+        self.svm = cPickle.loads(c.fetchone()[0])
         conn.close()
 
     def processFrame(self, dataURL, identity):
