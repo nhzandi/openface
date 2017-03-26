@@ -144,7 +144,7 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         elif msg['type'] == 'REQ_TSNE':
             self.sendTSNE(msg['people'])
         elif msg['type'] == 'SAVE_DB':
-            self.saveDB(msg['images'], msg['people'])
+            self.saveDB()
         else:
             print("Warning: Unknown message type: {}".format(msg['type']))
 
@@ -246,7 +246,7 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
             ]
             self.svm = GridSearchCV(SVC(C=1), param_grid, cv=5).fit(X, y)
 
-    def saveDB(self, images, people):
+    def saveDB(self):
         print("save images into DATABASE")
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
@@ -255,8 +255,9 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         for img in self.images.values():
             X = cPickle.dumps(img.rep)
             y = img.identity
-            face = (sqlite3.Binary(X),y)
-            c.execute("INSERT INTO faces VALUES (?, ?) ", face)
+            z = self.people[img.identity]
+            face = (sqlite3.Binary(X), y, z)
+            c.execute("INSERT INTO faces VALUES (?, ?, ?) ", face)
 
         conn.commit()
         conn.close()
