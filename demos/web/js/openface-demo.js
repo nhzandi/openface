@@ -262,15 +262,14 @@ function saveDataCallback(){
     console.log("save called");
     if (socket != null){
       var msg = {
-          'type' : 'SAVE_DB',
-          'images' : images,
-          'people' : people
+          'type' : 'SAVE_DB'
       };
       socket.send(JSON.stringify(msg));
     }
 }
 
 function loadDataCallback(){
+    console.log("load called");
     if (socket != null){
       var msg = {
           'type' : 'LOAD_DB'
