@@ -251,7 +251,7 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
         c.execute('''CREATE TABLE faces
-                    (image blob, name text)''')
+                    (image blob, identity text, name text)''')
         for img in self.images.values():
             X = cPickle.dumps(img.rep)
             y = img.identity
