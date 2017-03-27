@@ -260,12 +260,13 @@ function addPersonCallback(el) {
 
 function saveDataCallback(){
     console.log("save called");
-    if (socket != null){
-      var msg = {
-          'type' : 'SAVE_DB'
-      };
-      socket.send(JSON.stringify(msg));
-    }
+    var msg = {
+        'type': 'SAVE_DB',
+        'images': images,
+        'people': people,
+        'training': training
+    };
+    socket.send(JSON.stringify(msg));
 }
 
 function loadDataCallback(){

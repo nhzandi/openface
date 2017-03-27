@@ -96,9 +96,6 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         self.training = True
         self.people = []
         self.svm = None
-        self.dbRep = []
-        self.dbId = []
-        self.loaded = False
         if args.unknown:
             self.unknownImgs = np.load("./examples/web/unknown.npy")
 
@@ -147,7 +144,7 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         elif msg['type'] == 'REQ_TSNE':
             self.sendTSNE(msg['people'])
         elif msg['type'] == 'SAVE_DB':
-            self.saveDB()
+            self.saveDB(msg['images'], msg['people'], msg['training'])
         elif msg['type'] == 'LOAD_DB':
             self.loadDB()
         else:
@@ -170,20 +167,14 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         if not training:
             self.trainSVM()
 
+        self.loadDB()
+
     def getData(self):
         X = []
         y = []
         for img in self.images.values():
             X.append(img.rep)
             y.append(img.identity)
-
-        if not self.loaded:
-            self.loadDB()
-            self.loaded = True
-
-        for rep, idd in zip(self.dbRep, self.dbId):
-            X.append(rep)
-            y.append(idd)
 
         numIdentities = len(set(y + [-1])) - 1
         if numIdentities == 0:
@@ -259,29 +250,48 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
             ]
             self.svm = GridSearchCV(SVC(C=1), param_grid, cv=5).fit(X, y)
 
-    def saveDB(self):
+    def saveDB(self, jsImages, jsPeople, training):
         print("save images into DATABASE")
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
-        c.execute('''CREATE TABLE faces
-                    (image blob, identity text)''')
-        c.execute('''CREATE TABLE people
+        # c.execute('''CREATE TABLE faces
+        #             (image blob, identity text)''')
+        # c.execute('''CREATE TABLE people
+        #             (name text)''')
+        # c.execute('''CREATE TABLE svm
+        #             (svm blob)''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS faces
+                    (image blob)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS people
                     (name text)''')
-        c.execute('''CREATE TABLE svm
+        c.execute('''CREATE TABLE IF NOT EXISTS svm
                     (svm blob)''')
 
-        for img in self.images.values():
-            X = cPickle.dumps(img.rep)
-            y = img.identity
-            face = (sqlite3.Binary(X), y)
-            c.execute("INSERT INTO faces VALUES (?, ?) ", face)
 
-        for p in self.people:
-            pe = (p, )
-            c.execute("INSERT INTO people VALUES (?)", pe)
+        for jsImage in jsImages:
+            face = (sqlite3.Binary(cPickle.dumps(jsImage)), )
+            c.execute("INSERT INTO faces VALUES (?) ", face)
+
+        for jsPerson in jsPeople:
+            people = (jsPerson, )
+            c.execute("INSERT INTO people VALUES (?)", people)
+
+        # for img in self.images.values():
+        #     X = cPickle.dumps(img.rep)
+        #     y = img.identity
+        #     face = (sqlite3.Binary(X), y)
+        #     c.execute("INSERT INTO faces VALUES (?, ?) ", face)
+        #
+        # for p in self.people:
+        #     pe = (p, )
+        #     c.execute("INSERT INTO people VALUES (?)", pe)
 
         if self.svm is not None:
             c.execute("INSERT INTO svm VALUES (?)", self.svm)
+
+        # TODO: now every time we load data from DB, a new SVM is being trained.
+        # somehow change it
 
         conn.commit()
         conn.close()
@@ -290,19 +300,30 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
         c.execute("SELECT * FROM faces")
-        for faces in c:
-            # TODO read the data and fill self.image
-            self.dbRep.append(cPickle.loads(str(faces[0])))
-            self.dbId.append(int(faces[1].encode('ascii', 'ignore')))
+        # for faces in c:
+        #     # TODO read the data and fill self.image
+        #     self.dbRep.append(cPickle.loads(str(faces[0])))
+        #     self.dbId.append(int(faces[1].encode('ascii', 'ignore')))
 
+        data = c.fetchall()
+        if len(data) != 0:
+            for face in data:
+                jsImage = cPickle.loads(str(face[0]))
+                h = jsImage['hash'].encode('ascii', 'ignore')
+                self.images[h] = Face(np.array(jsImage['representation']),
+                                      jsImage['identity'])
 
         c.execute("SELECT * FROM people")
-        for people in c:
-            self.people.append(people[0].encode('ascii', 'ignore'))
+        data = c.fetchall()
+        if len(data) != 0:
+            for people in data:
+                self.people.append(people[0].encode('ascii', 'ignore'))
         print(self.people)
 
         c.execute("SELECT * FROM svm")
-        self.svm = cPickle.loads(c.fetchone()[0])
+        data = c.fetchall()
+        if len(data) != 0:
+            self.svm = cPickle.loads(c.fetchone()[0])
         conn.close()
 
     def processFrame(self, dataURL, identity):
@@ -391,6 +412,7 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
                 cv2.putText(annotatedFrame, name, (bb.left(), bb.top() - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75,
                             color=(152, 255, 204), thickness=2)
+                print identity
 
         if not self.training:
             msg = {
