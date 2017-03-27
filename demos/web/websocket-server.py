@@ -98,6 +98,7 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         self.svm = None
         self.dbRep = []
         self.dbId = []
+        self.loaded = False
         if args.unknown:
             self.unknownImgs = np.load("./examples/web/unknown.npy")
 
@@ -175,6 +176,14 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         for img in self.images.values():
             X.append(img.rep)
             y.append(img.identity)
+
+        if not self.loaded:
+            self.loadDB()
+            self.loaded = True
+
+        for rep, idd in zip(self.dbRep, self.dbId):
+            X.append(rep)
+            y.append(idd)
 
         numIdentities = len(set(y + [-1])) - 1
         if numIdentities == 0:
@@ -283,13 +292,13 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         c.execute("SELECT * FROM faces")
         for faces in c:
             # TODO read the data and fill self.image
-            self.dbRep.append(cPickle.loads(faces[0]))
-            self.dbId.append(faces[1].encode('ascii', 'ignore'))
+            self.dbRep.append(cPickle.loads(str(faces[0])))
+            self.dbId.append(int(faces[1].encode('ascii', 'ignore')))
 
 
         c.execute("SELECT * FROM people")
         for people in c:
-            self.people.append(q[0].encode('ascii', 'ignore'))
+            self.people.append(people[0].encode('ascii', 'ignore'))
         print(self.people)
 
         c.execute("SELECT * FROM svm")
