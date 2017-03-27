@@ -261,14 +261,6 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         # c.execute('''CREATE TABLE svm
         #             (svm blob)''')
 
-        c.execute('''CREATE TABLE IF NOT EXISTS faces
-                    (image blob)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS people
-                    (name text)''')
-        c.execute('''CREATE TABLE IF NOT EXISTS svm
-                    (svm blob)''')
-
-
         for jsImage in jsImages:
             face = (sqlite3.Binary(cPickle.dumps(jsImage)), )
             c.execute("INSERT INTO faces VALUES (?) ", face)
@@ -299,6 +291,14 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
     def loadDB(self):
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
+
+        c.execute('''CREATE TABLE IF NOT EXISTS faces
+                    (image blob)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS people
+                    (name text)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS svm
+                    (svm blob)''')
+
         c.execute("SELECT * FROM faces")
         # for faces in c:
         #     # TODO read the data and fill self.image
