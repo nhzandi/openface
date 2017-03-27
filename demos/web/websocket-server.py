@@ -164,10 +164,11 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         for jsPerson in jsPeople:
             self.people.append(jsPerson.encode('ascii', 'ignore'))
 
+        self.loadDB()
+
         if not training:
             self.trainSVM()
 
-        self.loadDB()
 
     def getData(self):
         X = []
@@ -279,8 +280,9 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         #     pe = (p, )
         #     c.execute("INSERT INTO people VALUES (?)", pe)
 
-        if self.svm is not None:
-            c.execute("INSERT INTO svm VALUES (?)", self.svm)
+        # if self.svm is not None:
+            # svm = (sqlite3.Binary(cPickle.dumps(self.svm)), )
+            # c.execute("INSERT INTO svm VALUES (?)", self.svm)
 
         # TODO: now every time we load data from DB, a new SVM is being trained.
         # somehow change it
