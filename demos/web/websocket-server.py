@@ -262,8 +262,11 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
 
         for jsPerson in jsPeople:
             # print jsPerson
-            people = (jsPerson, )
-            c.execute("INSERT INTO people VALUES (?)", people)
+            c.execute("SELECT * FROM people WHERE (name=?)", (jsPerson,))
+            data = c.fetchone()
+            if data is None:
+                people = (jsPerson, )
+                c.execute("INSERT INTO people VALUES (?)", people)
 
 
         # if self.svm is not None:
