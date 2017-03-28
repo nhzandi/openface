@@ -255,30 +255,16 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         print("save images into DATABASE")
         conn = sqlite3.connect('faces.db')
         c = conn.cursor()
-        # c.execute('''CREATE TABLE faces
-        #             (image blob, identity text)''')
-        # c.execute('''CREATE TABLE people
-        #             (name text)''')
-        # c.execute('''CREATE TABLE svm
-        #             (svm blob)''')
 
         for jsImage in jsImages:
             face = (sqlite3.Binary(cPickle.dumps(jsImage)), )
             c.execute("INSERT INTO faces VALUES (?) ", face)
 
         for jsPerson in jsPeople:
+            # print jsPerson
             people = (jsPerson, )
             c.execute("INSERT INTO people VALUES (?)", people)
 
-        # for img in self.images.values():
-        #     X = cPickle.dumps(img.rep)
-        #     y = img.identity
-        #     face = (sqlite3.Binary(X), y)
-        #     c.execute("INSERT INTO faces VALUES (?, ?) ", face)
-        #
-        # for p in self.people:
-        #     pe = (p, )
-        #     c.execute("INSERT INTO people VALUES (?)", pe)
 
         # if self.svm is not None:
             # svm = (sqlite3.Binary(cPickle.dumps(self.svm)), )
@@ -319,7 +305,14 @@ class OpenFaceServerProtocol(WebSocketServerProtocol):
         data = c.fetchall()
         if len(data) != 0:
             for people in data:
-                self.people.append(people[0].encode('ascii', 'ignore'))
+                pe = people[0].encode('ascii', 'ignore')
+                self.people.append(pe)
+                msg = {
+                    "type": "LOAD_P",
+                    "pe": pe
+                }
+                self.sendMessage(json.dumps(msg))
+
         print(self.people)
 
         c.execute("SELECT * FROM svm")

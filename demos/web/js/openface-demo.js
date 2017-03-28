@@ -188,6 +188,9 @@ function createSocket(address, name) {
                 representation: j.representation
             });
             redrawPeople();
+        } else if (j.type == "LOAD_P") {
+            people.push(j.pe);
+            console.log("new person" + j.pe);
         } else if (j.type == "IDENTITIES") {
             var h = "Last updated: " + (new Date()).toTimeString();
             h += "<ul>";
